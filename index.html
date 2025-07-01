@@ -44,13 +44,10 @@
         }
 
         /* Custom styling for select dropdowns to ensure text visibility */
-        select {
-            /* Ensure the text is dark and visible against a potentially light native dropdown background */
-            color: #1f2937; /* A dark gray for text */
-            background-color: #ffffff; /* White background for the select box */
-        }
-
-        /* Styling for options within the select dropdown (may vary by browser) */
+        /* Removed direct background-color and color to allow Tailwind classes to apply for the closed state */
+        /* The text-white and bg-white/20 classes on the select element will now be effective */
+        
+        /* Styling for options within the select dropdown (when it's open) */
         select option {
             background-color: #ffffff; /* White background for options */
             color: #1f2937; /* Dark text for options */
@@ -74,13 +71,13 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                     <label for="nakshatra-select" class="block text-sm font-medium text-blue-100 mb-2">Select your Birth Nakshatra</label>
-                    <select id="nakshatra-select" class="w-full border border-white/30 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300 p-3 transition duration-200">
+                    <select id="nakshatra-select" class="w-full bg-white/20 border border-white/30 text-white rounded-lg shadow-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300 p-3 transition duration-200">
                         <!-- Options will be populated by JavaScript -->
                     </select>
                 </div>
                 <div>
                     <label for="rashi-select" class="block text-sm font-medium text-blue-100 mb-2">Select your Birth Moon Rashi</label>
-                    <select id="rashi-select" class="w-full border border-white/30 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300 p-3 transition duration-200">
+                    <select id="rashi-select" class="w-full bg-white/20 border border-white/30 text-white rounded-lg shadow-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300 p-3 transition duration-200">
                         <!-- Options will be populated by JavaScript -->
                     </select>
                 </div>
@@ -198,7 +195,7 @@
             const fiveDaysLater = new Date();
             fiveDaysLater.setDate(today.getDate() + 4);
             
-            // Format dates as YYYY-MM-DD for input type="date" compatibility
+            // Format dates asYYYY-MM-DD for input type="date" compatibility
             startDateElement.value = today.toISOString().split('T')[0];
             endDateElement.value = fiveDaysLater.toISOString().split('T')[0];
         }
