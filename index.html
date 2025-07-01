@@ -3,964 +3,468 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hora and Choghadiya Chart</title>
-    <!-- Tailwind CSS CDN for modern styling -->
+    <title>Auspicious Day Analyzer</title>
+    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SunCalc.js for accurate sunrise/sunset calculations -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.8.0/suncalc.min.js"></script>
-    <!-- Google Fonts - Inter for a clean, modern look -->
+    <!-- Google Fonts - Inter for a clean look -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Custom styles to enhance the default Tailwind styling */
+        /* Apply Inter font to the entire body */
         body {
             font-family: 'Inter', sans-serif;
-            transition: background-color 0.3s ease; /* Smooth background transition */
         }
-        /* Styling for the planet icons to ensure proper alignment and size */
-        .planet-icon {
-            font-size: 1.5rem; /* Larger icons for better visibility */
-            line-height: 1; /* Aligns icon vertically */
-            display: inline-block; /* Ensures proper spacing */
-            vertical-align: middle; /* Aligns with text */
+        /* Custom celestial gradient background */
+        .celestial-gradient {
+            background: linear-gradient(135deg, #1e3a8a, #3b82f6, #93c5fd);
         }
-        /* Highlight for the current Hora/Choghadiya, with a subtle pulsing animation */
-        .current-hora-choghadiya {
-            background-color: #ecfdf5; /* Tailwind green-50 for subtle highlight */
-            animation: pulse-active 2s infinite ease-in-out; /* Smooth pulse effect */
-            border-left: 4px solid #10b981; /* Green border to emphasize */
-        }
-        /* Keyframe animation for the pulsing effect */
-        @keyframes pulse-active {
-            0%, 100% {
-                background-color: #ecfdf5; /* Start and end color */
-            }
-            50% {
-                background-color: #d1fae5; /* Mid-point color (slightly darker green) */
-            }
-        }
-        /* Styling for Rahu Kaal rows */
-        .rahu-kaal {
-            background-color: #fee2e2; /* Tailwind red-100 */
-            border-left: 4px solid #ef4444; /* Tailwind red-500 */
-        }
-        /* Styling for date input, consistent with Tailwind form elements */
-        input[type="date"], input[type="number"], input[type="text"] {
-            background-color: #f9fafb; /* Light gray background */
-            border: 1px solid #d1d5db; /* Gray border */
-            border-radius: 0.5rem; /* Rounded corners */
-            padding: 0.5rem 0.75rem; /* Comfortable padding */
-            transition: border-color 0.2s, box-shadow 0.2s; /* Smooth transitions for focus */
-        }
-        input[type="date"]:focus, input[type="number"]:focus, input[type="text"]:focus {
-            border-color: #6366f1; /* Indigo-500 on focus */
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3); /* Ring on focus */
-            outline: none; /* Remove default outline */
+        /* Styles for the main card container with frosted glass effect */
+        .card {
+            background-color: rgba(255, 255, 255, 0.1); /* Semi-transparent white */
+            backdrop-filter: blur(10px); /* Frosted glass effect */
+            border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle white border */
         }
         /* Loader spinner animation */
-        .loader-spinner {
+        .loader {
             border: 4px solid #f3f3f3; /* Light grey border */
-            border-top: 4px solid #6366f1; /* Blue border for spinner effect */
-            border-radius: 50%;
+            border-top: 4px solid #3498db; /* Blue border for animation */
+            border-radius: 50%; /* Makes it a circle */
             width: 40px;
             height: 40px;
-            animation: spin 1s linear infinite;
+            animation: spin 1s linear infinite; /* Spin animation */
         }
+        /* Keyframes for the spinning loader */
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        /* Scrollbar styling for better aesthetics */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+        /* Style for date picker icon to make it visible on dark background */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1) brightness(1.5); /* Invert colors and brighten */
+            cursor: pointer; /* Indicate it's clickable */
         }
-        ::-webkit-scrollbar-track {
-            background: #f0f0f0;
-            border-radius: 10px;
+
+        /* Custom styling for select dropdowns to ensure text visibility */
+        select {
+            /* Ensure the text is dark and visible against a potentially light native dropdown background */
+            color: #1f2937; /* A dark gray for text */
+            background-color: #ffffff; /* White background for the select box */
         }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
+
+        /* Styling for options within the select dropdown (may vary by browser) */
+        select option {
+            background-color: #ffffff; /* White background for options */
+            color: #1f2937; /* Dark text for options */
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
+
+        /* Table row hover effect for better interactivity */
+        tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.08); /* Slightly lighter on hover */
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800 antialiased flex flex-col min-h-screen">
+<body class="celestial-gradient text-white min-h-screen flex items-center justify-center p-4">
 
-    <div class="container mx-auto p-4 md:p-8 max-w-7xl flex-grow">
-        <header class="text-center mb-8 bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-            <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight">Hora and Choghadiya Chart</h1>
-            <p id="live-clock" class="text-lg text-indigo-600 font-semibold mt-3"></p>
-            <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
-                <input type="date" id="date-input" class="p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 text-gray-700 w-full sm:w-auto text-center">
-                <button id="calculate-btn" class="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg shadow-xl hover:bg-indigo-700 transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 w-full sm:w-auto">
-                    Calculate Timings
-                </button>
+    <div class="w-full max-w-5xl mx-auto">
+        <div class="card rounded-2xl shadow-2xl p-6 md:p-10">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl md:text-4xl font-bold tracking-tight">Auspicious Day Analyzer</h1>
+                <p class="text-blue-200 mt-2">Find your favorable days based on Nakshatra and Moon transits.</p>
             </div>
-            <p id="display-date" class="text-lg text-gray-600 mt-5 font-medium">Chart for: <span class="font-bold text-indigo-700"></span></p>
-            <p id="location" class="text-sm text-gray-500 mt-2">Fetching location...</p>
 
-            <!-- Location Choice Section -->
-            <div class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
-                <div class="flex items-center justify-center mb-4">
-                    <input type="radio" id="auto-location" name="location-choice" value="auto" checked class="form-radio text-indigo-600 h-4 w-4">
-                    <label for="auto-location" class="ml-2 mr-4 text-gray-700 font-medium cursor-pointer">Auto-detect Location</label>
-                    <input type="radio" id="manual-location" name="location-choice" value="manual" class="form-radio text-indigo-600 h-4 w-4">
-                    <label for="manual-location" class="ml-2 text-gray-700 font-medium cursor-pointer">Manual Location Input</label>
-                </div>
-
-                <div id="manual-location-inputs" class="grid grid-cols-1 gap-4 hidden"> <!-- Changed to grid-cols-1 -->
-                    <div>
-                        <label for="location-name-input" class="block text-sm font-medium text-gray-700 text-left mb-1">Enter Location Name</label>
-                        <input type="text" id="location-name-input" placeholder="e.g., Delhi, India or New York" class="w-full p-2 border rounded-lg text-gray-700">
-                    </div>
-                </div>
-            </div>
-        </header>
-
-        <!-- Loader displayed during calculations -->
-        <div id="loader" class="flex flex-col items-center justify-center py-16 hidden">
-            <div class="loader-spinner"></div>
-            <p class="mt-4 text-gray-600 text-lg">Calculating sunrise, sunset, and Hora/Choghadiya timings...</p>
-        </div>
-        
-        <!-- Main content, hidden until calculations are complete -->
-        <div id="main-content" class="hidden">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center mb-8 bg-white p-5 rounded-xl shadow-md border border-gray-200">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
-                    <h2 class="text-xl font-bold text-green-700 mb-1">Sunrise</h2>
-                    <p id="sunrise-time" class="text-3xl font-extrabold text-green-600"></p>
+                    <label for="nakshatra-select" class="block text-sm font-medium text-blue-100 mb-2">Select your Birth Nakshatra</label>
+                    <select id="nakshatra-select" class="w-full border border-white/30 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300 p-3 transition duration-200">
+                        <!-- Options will be populated by JavaScript -->
+                    </select>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-orange-700 mb-1">Sunset</h2>
-                    <p id="sunset-time" class="text-3xl font-extrabold text-orange-600"></p>
+                    <label for="rashi-select" class="block text-sm font-medium text-blue-100 mb-2">Select your Birth Moon Rashi</label>
+                    <select id="rashi-select" class="w-full border border-white/30 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300 p-3 transition duration-200">
+                        <!-- Options will be populated by JavaScript -->
+                    </select>
                 </div>
-                 <div>
-                    <h2 class="text-xl font-bold text-red-700 mb-1">Rahu Kaal</h2>
-                    <p id="rahu-kaal-time" class="text-3xl font-extrabold text-red-600"></p>
+                <div>
+                    <label for="start-date" class="block text-sm font-medium text-blue-100 mb-2">Analysis Start Date</label>
+                    <input type="date" id="start-date" class="w-full bg-white/20 border border-white/30 text-white rounded-lg shadow-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300 p-2.5 transition duration-200">
                 </div>
-            </div>
-
-            <!-- Best Auspicious Timings Table -->
-            <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mb-8">
-                <h2 class="text-2xl font-bold text-center p-4 bg-green-600 text-white rounded-t-xl">✨ Best Auspicious Timings ✨</h2>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-100">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Start Time</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">End Time</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Hora</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Choghadiya</th>
-                            </tr>
-                        </thead>
-                        <tbody id="best-times-body" class="bg-white divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-                <div id="no-best-times-message" class="p-4 text-center text-gray-500 hidden">
-                    No highly auspicious overlapping periods found for this date based on selected criteria, are shorter than 20 minutes, or fall within Rahu Kaal.
+                <div>
+                    <label for="end-date" class="block text-sm font-medium text-blue-100 mb-2">Analysis End Date</label>
+                    <input type="date" id="end-date" class="w-full bg-white/20 border border-white/30 text-white rounded-lg shadow-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300 p-2.5 transition duration-200">
                 </div>
             </div>
 
-            <!-- Group all Hora and Choghadiya tables in a single responsive grid container -->
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
-                <!-- Day Hora Table -->
-                <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-                    <h2 class="text-2xl font-bold text-center p-4 bg-orange-500 text-white rounded-t-xl">Day Hora</h2>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-100">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Hora #</th>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Planet</th>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Time</th>
-                                </tr>
-                            </thead>
-                            <tbody id="day-hora-body" class="bg-white divide-y divide-gray-200"></tbody>
-                        </table>
-                    </div>
-                </div>
+            <button id="analyze-btn" class="w-full bg-white text-blue-700 font-bold py-3 px-4 rounded-lg hover:bg-blue-100 transition duration-300 transform hover:scale-105 shadow-lg">
+                Analyze My Days
+            </button>
 
-                <!-- Night Hora Table -->
-                <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-                    <h2 class="text-2xl font-bold text-center p-4 bg-indigo-500 text-white rounded-t-xl">Night Hora</h2>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-100">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Hora #</th>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Planet</th>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Time</th>
-                                </tr>
-                            </thead>
-                            <tbody id="night-hora-body" class="bg-white divide-y divide-gray-200"></tbody>
-                        </table>
-                    </div>
+            <div id="results-container" class="mt-8 hidden">
+                <div id="loader" class="flex justify-center items-center py-8 hidden">
+                    <div class="loader"></div>
+                    <p class="ml-4 text-lg">Analyzing the cosmos for you...</p>
                 </div>
-
-                <!-- Day Choghadiya Table -->
-                <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-                    <h2 class="text-2xl font-bold text-center p-4 bg-purple-500 text-white rounded-t-xl">Day Choghadiya</h2>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-100">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Time</th>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Info</th>
-                                </tr>
-                            </thead>
-                            <tbody id="day-choghadiya-body" class="bg-white divide-y divide-gray-200"></tbody>
-                        </table>
-                    </div>
+                <div id="output" class="p-1 bg-white/10 rounded-lg border border-white/20 overflow-x-auto">
+                    <!-- Results table will appear here -->
                 </div>
-
-                <!-- Night Choghadiya Table -->
-                <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-                    <h2 class="text-2xl font-bold text-center p-4 bg-teal-500 text-white rounded-t-xl">Night Choghadiya</h2>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-100">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Time</th>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Info</th>
-                                </tr>
-                            </thead>
-                            <tbody id="night-choghadiya-body" class="bg-white divide-y divide-gray-200"></tbody>
-                        </table>
-                    </div>
-                </div>
+                <div id="error-message" class="mt-4 p-4 bg-red-500/30 text-red-200 rounded-lg hidden"></div>
             </div>
-
         </div>
-
-        <!-- Error message for location services -->
-        <div id="error-message" class="hidden text-center mt-8 p-4 bg-red-100 text-red-700 rounded-lg shadow-md border border-red-200">
-            <p class="font-medium">⚠️ Location access denied or unavailable. Using default coordinates (Delhi, India). Please enable location services in your browser for accurate local Hora timings.</p>
-        </div>
-        <!-- Manual Location Input Error -->
-        <div id="manual-location-error" class="hidden text-center mt-4 p-3 bg-red-100 text-red-700 rounded-lg">
-            <p class="font-medium">Please enter a valid Location Name.</p>
-        </div>
-         <!-- Location Name Not Found Error -->
-        <div id="location-name-error" class="hidden text-center mt-4 p-3 bg-red-100 text-red-700 rounded-lg">
-            <p class="font-medium">Location name not found. Using default coordinates (Delhi, India).</p>
-        </div>
-
+        <footer class="text-center mt-6 text-sm text-blue-200">
+            <p>Disclaimer: This is a tool for spiritual guidance and entertainment. Consult a professional astrologer for important decisions.</p>
+        </footer>
     </div>
 
-    <footer class="text-center text-sm text-gray-500 py-6 mt-8 bg-gray-50 border-t border-gray-200">
-        <p>&copy; <span id="current-year"></span> Planetary Hora and Choghadiya Chart. All rights reserved.</p>
-        <p class="mt-1">Calculations are based on geocentric sunrise and sunset timings using SunCalc.js.</p>
-    </footer>
-
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- Global State Variables ---
-            let userCoords = {
-                lat: 28.6139, // Default to Delhi, India
-                lng: 77.2090
-            };
-            let highlightInterval; // Stores the interval ID for highlighting current Hora/Choghadiya
-            let currentLocationName = "Fetching location..."; // Stores the user's fetched location name
-            let useAutoLocation = true; // Flag to track if auto-detection or manual input is used
-            let rahuKaalPeriod = { start: null, end: null }; // Stores Rahu Kaal start and end timestamps
+        // --- DATA AND CONSTANTS ---
 
-            // --- DOM Element References ---
-            const locationEl = document.getElementById('location');
-            const loaderEl = document.getElementById('loader');
-            const mainContentEl = document.getElementById('main-content');
-            const errorMessageEl = document.getElementById('error-message');
-            const manualLocationErrorEl = document.getElementById('manual-location-error');
-            const locationNameErrorEl = document.getElementById('location-name-error');
-            const dateInputEl = document.getElementById('date-input');
-            const calculateBtn = document.getElementById('calculate-btn');
-            const displayDateEl = document.querySelector('#display-date span');
-            const liveClockEl = document.getElementById('live-clock');
-            const sunriseTimeEl = document.getElementById('sunrise-time');
-            const sunsetTimeEl = document.getElementById('sunset-time');
-            const rahuKaalTimeEl = document.getElementById('rahu-kaal-time'); // New element
+        // List of 27 Nakshatras
+        const nakshatras = [
+            "Ashwini", "Bharani", "Krittika", "Rohini", "Mrigashirsha", "Ardra", 
+            "Punarvasu", "Pushya", "Ashlesha", "Magha", "Purva Phalguni", 
+            "Uttara Phalguni", "Hasta", "Chitra", "Swati", "Vishakha", "Anuradha", 
+            "Jyeshtha", "Mula", "Purva Ashadha", "Uttara Ashadha", "Shravana", 
+            "Dhanishta", "Shatabhisha", "Purva Bhadrapada", "Uttara Bhadrapada", "Revati"
+        ];
+        
+        // List of 12 Rashis (Zodiac Signs)
+        const rashis = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"];
+
+        // Simplified mapping from Nakshatra to its corresponding Rashi.
+        // This is a basic mapping for simulation purposes.
+        const nakshatraToRashi = {
+            "Ashwini": "Aries", "Bharani": "Aries", "Krittika": "Aries",
+            "Rohini": "Taurus", "Mrigashirsha": "Taurus", "Ardra": "Gemini",
+            "Punarvasu": "Gemini", "Pushya": "Cancer", "Ashlesha": "Cancer",
+            "Magha": "Leo", "Purva Phalguni": "Leo", "Uttara Phalguni": "Leo",
+            "Hasta": "Virgo", "Chitra": "Virgo", "Swati": "Libra",
+            "Vishakha": "Libra", "Anuradha": "Scorpio", "Jyeshtha": "Scorpio",
+            "Mula": "Sagittarius", "Purva Ashadha": "Sagittarius", "Uttara Ashadha": "Sagittarius",
+            "Shravana": "Capricorn", "Dhanishta": "Capricorn", "Shatabhisha": "Aquarius",
+            "Purva Bhadrapada": "Aquarius", "Uttara Bhadrapada": "Pisces", "Revati": "Pisces"
+        };
+        
+        // Descriptions for each Tara Bala group based on the provided PDF
+        const taraBalaDescriptions = {
+            'Janma': 'Good time to start any important work',
+            'Sampat': 'Good time to start something related to Money',
+            'Vipat': 'No travel. No Risk',
+            'Kshema': 'Good Time To Start Health Related activities',
+            'Pratyak': 'Avoid anything New thing. Avoid Taking Risks',
+            'Sadhana': 'Good Time To Start Meditation, Sadhana, Spiritual',
+            'Naidhana': "Don't start any new work. Don't Take Risk",
+            'Mitra': 'Good To start new thing.',
+            'Ati-Mitra': 'Good To start new thing.' // Param Mitra from PDF
+        };
+
+
+        // --- UI ELEMENT REFERENCES ---
+        // Get references to all necessary HTML elements by their IDs
+        const selectNakshatraElement = document.getElementById('nakshatra-select');
+        const selectRashiElement = document.getElementById('rashi-select');
+        const startDateElement = document.getElementById('start-date');
+        const endDateElement = document.getElementById('end-date');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const resultsContainer = document.getElementById('results-container');
+        const loader = document.getElementById('loader');
+        const outputDiv = document.getElementById('output');
+        const errorMessageDiv = document.getElementById('error-message');
+
+        // --- INITIALIZATION FUNCTIONS ---
+
+        /**
+         * Populates the Nakshatra and Rashi dropdowns with options from their respective arrays.
+         */
+        function populateDropdowns() {
+            nakshatras.forEach(n => {
+                const option = document.createElement('option');
+                option.value = n;
+                option.textContent = n;
+                selectNakshatraElement.appendChild(option);
+            });
+            rashis.forEach(r => {
+                const option = document.createElement('option');
+                option.value = r;
+                option.textContent = r;
+                selectRashiElement.appendChild(option);
+            });
+        }
+        
+        /**
+         * Sets the initial values for the start and end date input fields.
+         * Start date is today, end date is 4 days from today.
+         */
+        function setInitialDates() {
+            const today = new Date();
+            const fiveDaysLater = new Date();
+            fiveDaysLater.setDate(today.getDate() + 4);
             
-            // Removed Hindu Calendar Details Elements' DOM references
-            // const tithiInfoEl = document.getElementById('tithi-info');
-            // const nakshatraInfoEl = document.getElementById('nakshatra-info');
-            // const pakshaInfoEl = document.getElementById('paksha-info');
-            // const moonsignInfoEl = document.getElementById('moonsign-info');
+            // Format dates as YYYY-MM-DD for input type="date" compatibility
+            startDateElement.value = today.toISOString().split('T')[0];
+            endDateElement.value = fiveDaysLater.toISOString().split('T')[0];
+        }
 
+        // --- CORE LOGIC FUNCTIONS ---
 
-            const dayHoraBodyEl = document.getElementById('day-hora-body');
-            const nightHoraBodyEl = document.getElementById('night-hora-body');
-            const dayChoghadiyaBodyEl = document.getElementById('day-choghadiya-body');
-            const nightChoghadiyaBodyEl = document.getElementById('night-choghadiya-body');
-            const bestTimesBodyEl = document.getElementById('best-times-body');
-            const noBestTimesMessageEl = document.getElementById('no-best-times-message');
+        /**
+         * Simulates fetching the Moon's Nakshatra and Rashi transit for a given date range.
+         * This uses an anchor date and a simple daily progression for simulation purposes,
+         * as actual astrological calculations are complex and require external data/APIs.
+         * @param {Date} startDate - The start date for the forecast.
+         * @param {Date} endDate - The end date for the forecast.
+         * @returns {Array<Object>} An array of objects, each containing date, transit nakshatra, and rashi.
+         */
+        function getMoonTransitForecast(startDate, endDate) {
+            const forecast = [];
+            // Anchor point for our simulation (a known date and its Nakshatra).
+            // Using July 1, 2025, with 'Uttara Phalguni' as a fixed reference.
+            const anchorDate = new Date('2025-07-01T00:00:00Z'); 
+            const anchorNakshatraIndex = nakshatras.indexOf('Uttara Phalguni'); // Index of Uttara Phalguni in our array
 
+            const oneDay = 24 * 60 * 60 * 1000; // Milliseconds in one day
 
-            const autoLocationRadio = document.getElementById('auto-location');
-            const manualLocationRadio = document.getElementById('manual-location');
-            const manualLocationInputsDiv = document.getElementById('manual-location-inputs');
-            const locationNameInput = document.getElementById('location-name-input'); // Only location name input
-
-            // --- Constants for Hora Calculation ---
-            // Details for each planet, including their icon and full name.
-            const planetDetails = {
-                Sun: { icon: '☀️', name: 'Sun' },
-                Venus: { icon: '♀️', name: 'Venus' },
-                Mercury: { icon: '☿️', name: 'Mercury' },
-                Moon: { icon: '🌕', name: 'Moon' },
-                Saturn: { icon: '♄', name: 'Saturn' },
-                Jupiter: { icon: '♃', name: 'Jupiter' },
-                Mars: { icon: '♂️', name: 'Mars' }
-            };
-            // The ruling planet for each day of the week (Sunday=0, Monday=1, etc.)
-            const weekDayLords = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'];
-            // The fixed order of planetary hours (from fastest to slowest apparent motion)
-            const planetaryHourOrder = ['Sun', 'Venus', 'Mercury', 'Moon', 'Saturn', 'Jupiter', 'Mars'];
-            const defaultLocationFallback = "Delhi, India (Default)";
-
-            // Auspiciousness mapping for Hora planets
-            // Based on user's request, only Jupiter, Venus, Moon, Mercury are considered 'best'
-            const BEST_HORA_PLANETS = ['Jupiter', 'Venus', 'Moon', 'Mercury'];
-
-            // Rahu Kaal Yama Index (0-indexed array, corresponds to days Sun-Sat)
-            // Yama duration is (Sunset - Sunrise) / 8
-            // Sunday (0): 4th Yama (index 3)
-            // Monday (1): 2nd Yama (index 1)
-            // Tuesday (2): 6th Yama (index 5)
-            // Wednesday (3): 5th Yama (index 4)
-            // Thursday (4): 3rd Yama (index 2)
-            // Friday (5): 7th Yama (index 6)
-            // Saturday (6): 8th Yama (index 7) - Note: This mapping is based on common astrological texts.
-            const RAHU_KAAL_YAMA_INDEX = [3, 1, 5, 4, 2, 6, 7];
-
-
-            // --- Constants for Choghadiya Calculation ---
-            const CHOGHADIYA_TYPES = {
-                LABH: { name: 'Labh', info: 'Good for profit & starting new ventures.', color: 'text-green-600' },
-                AMRIT: { name: 'Amrit', info: 'Excellent, highly auspicious, good for all work.', color: 'text-green-700' },
-                KAAL: { name: 'Kaal', info: 'Inauspicious, avoid new beginnings.', color: 'text-red-600' },
-                SHUBH: { name: 'Shubh', info: 'Good for auspicious ceremonies & good deeds.', color: 'text-blue-600' },
-                ROG: { name: 'Rog', info: 'Inauspicious, leads to illness or disputes.', color: 'text-red-700' },
-                UDVEG: { name: 'Udveg', info: 'Inauspicious, problematic, causes anxiety.', color: 'text-yellow-600' },
-                CHAR: { name: 'Char', info: 'Neutral, good for travel & dynamic activities.', color: 'text-purple-600' }
-            };
-
-            // Based on user's request, only Labh, Amrit, Shubh are considered 'best'
-            const BEST_CHOGHADIYA_TYPES = ['Labh', 'Amrit', 'Shubh'];
-
-            // Choghadiya sequences for each day of the week (starting from Sunday = 0)
-            const CHOGHADIYA_DAY_ORDER = [
-                [CHOGHADIYA_TYPES.UDVEG, CHOGHADIYA_TYPES.CHAR, CHOGHADIYA_TYPES.LABH, CHOGHADIYA_TYPES.AMRIT, CHOGHADIYA_TYPES.KAAL, CHOGHADIYA_TYPES.SHUBH, CHOGHADIYA_TYPES.ROG, CHOGHADIYA_TYPES.UDVEG], // Sunday
-                [CHOGHADIYA_TYPES.AMRIT, CHOGHADIYA_TYPES.CHAR, CHOGHADIYA_TYPES.ROG, CHOGHADIYA_TYPES.UDVEG, CHOGHADIYA_TYPES.SHUBH, CHOGHADIYA_TYPES.LABH, CHOGHADIYA_TYPES.AMRIT, CHOGHADIYA_TYPES.KAAL], // Monday
-                [CHOGHADIYA_TYPES.ROG, CHOGHADIYA_TYPES.UDVEG, CHOGHADIYA_TYPES.CHAR, CHOGHADIYA_TYPES.LABH, CHOGHADIYA_TYPES.AMRIT, CHOGHADIYA_TYPES.KAAL, CHOGHADIYA_TYPES.SHUBH, CHOGHADIYA_TYPES.ROG], // Tuesday
-                [CHOGHADIYA_TYPES.LABH, CHOGHADIYA_TYPES.AMRIT, CHOGHADIYA_TYPES.KAAL, CHOGHADIYA_TYPES.SHUBH, CHOGHADIYA_TYPES.ROG, CHOGHADIYA_TYPES.UDVEG, CHOGHADIYA_TYPES.CHAR, CHOGHADIYA_TYPES.LABH], // Wednesday
-                // Corrected Thursday Day Choghadiya sequence based on Drik Panchang image
-                [CHOGHADIYA_TYPES.SHUBH, CHOGHADIYA_TYPES.ROG, CHOGHADIYA_TYPES.UDVEG, CHOGHADIYA_TYPES.CHAR, CHOGHADIYA_TYPES.LABH, CHOGHADIYA_TYPES.AMRIT, CHOGHADIYA_TYPES.KAAL, CHOGHADIYA_TYPES.SHUBH], // Thursday (Index 4)
-                [CHOGHADIYA_TYPES.CHAR, CHOGHADIYA_TYPES.LABH, CHOGHADIYA_TYPES.AMRIT, CHOGHADIYA_TYPES.KAAL, CHOGHADIYA_TYPES.SHUBH, CHOGHADIYA_TYPES.ROG, CHOGHADIYA_TYPES.UDVEG, CHOGHADIYA_TYPES.CHAR], // Friday
-                [CHOGHADIYA_TYPES.KAAL, CHOGHADIYA_TYPES.SHUBH, CHOGHADIYA_TYPES.ROG, CHOGHADIYA_TYPES.UDVEG, CHOGHADIYA_TYPES.CHAR, CHOGHADIYA_TYPES.LABH, CHOGHADIYA_TYPES.AMRIT, CHOGHADIYA_TYPES.KAAL]  // Saturday
-            ];
-
-            const CHOGHADIYA_NIGHT_ORDER = [
-                [CHOGHADIYA_TYPES.SHUBH, CHOGHADIYA_TYPES.AMRIT, CHOGHADIYA_TYPES.CHAR, CHOGHADIYA_TYPES.ROG, CHOGHADIYA_TYPES.UDVEG, CHOGHADIYA_TYPES.SHUBH, CHOGHADIYA_TYPES.LABH, CHOGHADIYA_TYPES.AMRIT], // Sunday Night
-                [CHOGHADIYA_TYPES.CHAR, CHOGHADIYA_TYPES.ROG, CHOGHADIYA_TYPES.UDVEG, CHOGHADIYA_TYPES.SHUBH, CHOGHADIYA_TYPES.LABH, CHOGHADIYA_TYPES.AMRIT, CHOGHADIYA_TYPES.KAAL, CHOGHADIYA_TYPES.SHUBH], // Monday Night
-                [CHOGHADIYA_TYPES.AMRIT, CHOGHADIYA_TYPES.CHAR, CHOGHADIYA_TYPES.ROG, CHOGHADIYA_TYPES.UDVEG, CHOGHADIYA_TYPES.SHUBH, CHOGHADIYA_TYPES.LABH, CHOGHADIYA_TYPES.AMRIT, CHOGHADIYA_TYPES.KAAL], // Tuesday Night
-                [CHOGHADIYA_TYPES.KAAL, CHOGHADIYA_TYPES.SHUBH, CHOGHADIYA_TYPES.ROG, CHOGHADIYA_TYPES.UDVEG, CHOGHADIYA_TYPES.CHAR, CHOGHADIYA_TYPES.LABH, CHOGHADIYA_TYPES.AMRIT, CHOGHADIYA_TYPES.KAAL], // Wednesday Night
-                // Corrected Thursday Night Choghadiya sequence based on Drik Panchang image
-                [CHOGHADIYA_TYPES.AMRIT, CHOGHADIYA_TYPES.CHAR, CHOGHADIYA_TYPES.ROG, CHOGHADIYA_TYPES.KAAL, CHOGHADIYA_TYPES.LABH, CHOGHADIYA_TYPES.UDVEG, CHOGHADIYA_TYPES.SHUBH, CHOGHADIYA_TYPES.AMRIT], // Thursday Night (Index 4)
-                [CHOGHADIYA_TYPES.ROG, CHOGHADIYA_TYPES.UDVEG, CHOGHADIYA_TYPES.CHAR, CHOGHADIYA_TYPES.LABH, CHOGHADIYA_TYPES.AMRIT, CHOGHADIYA_TYPES.KAAL, CHOGHADIYA_TYPES.SHUBH, CHOGHADIYA_TYPES.ROG], // Friday Night
-                [CHOGHADIYA_TYPES.UDVEG, CHOGHADIYA_TYPES.CHAR, CHOGHADIYA_TYPES.LABH, CHOGHADIYA_TYPES.AMRIT, CHOGHADIYA_TYPES.KAAL, CHOGHADIYA_TYPES.SHUBH, CHOGHADIYA_TYPES.ROG, CHOGHADIYA_TYPES.UDVEG]  // Saturday Night
-            ];
-
-
-            // --- Initialization Function ---
-            const init = () => {
-                // Set the date input to today's date by default
-                const today = new Date();
-                const currentYear = today.getFullYear();
-                const mm = String(today.getMonth() + 1).padStart(2, '0');
-                const dd = String(today.getDate()).padStart(2, '0');
-                dateInputEl.value = `${currentYear}-${mm}-${dd}`;
-
-                // Set the current year in the footer
-                document.getElementById('current-year').textContent = currentYear;
+            // Loop through each day from the start date to the end date
+            for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                // Calculate the difference in days from the anchor date
+                const diffDays = Math.round((d.getTime() - anchorDate.getTime()) / oneDay);
                 
-                // Add event listener for the calculate button
-                calculateBtn.addEventListener('click', handleCalculation);
-                
-                // Add event listeners for location choice radio buttons
-                autoLocationRadio.addEventListener('change', handleLocationChoice);
-                manualLocationRadio.addEventListener('change', handleLocationChoice);
-                
-                // Start the live clock display
-                startLiveClock();
-                
-                // On initial load, attempt to get location and perform calculation
-                // The getLocation function will now directly trigger calculateTimings once location is resolved
-                getLocation();
-            };
+                // Calculate the current transit Nakshatra index.
+                // The modulo 27 ensures we cycle through the 27 nakshatras.
+                // Adding 27 ensures the result of the modulo is always positive, even for negative diffDays.
+                const transitNakshatraIndex = (anchorNakshatraIndex + diffDays % 27 + 27) % 27; 
+                const nakshatra = nakshatras[transitNakshatraIndex];
+                const rashi = nakshatraToRashi[nakshatra] || "Unknown"; // Get corresponding Rashi, with fallback
 
-            // --- Live Clock Display ---
-            const startLiveClock = () => {
-                // Update the clock every second
-                setInterval(() => {
-                    const now = new Date();
-                    liveClockEl.textContent = `Current Time: ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`;
-                }, 1000);
-            };
-            
-            // --- Event Handler for Calculation Button ---
-            const handleCalculation = async () => {
-                const dateValue = dateInputEl.value;
-                if (!dateValue) {
-                    console.error("Date input is empty.");
-                    return;
+                // Push the daily forecast data to the array
+                forecast.push({
+                    date: new Date(d).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }),
+                    nakshatra: nakshatra,
+                    rashi: rashi
+                });
+            }
+            return forecast;
+        }
+
+        /**
+         * Analyzes transits based on both Tara Bala (Nakshatra) and Chandrashtama (Rashi).
+         * @param {string} birthNakshatra - The user's birth nakshatra.
+         * @param {string} birthRashi - The user's birth moon rashi.
+         * @param {Array<Object>} transitForecast - The forecast of daily moon transits.
+         * @returns {Array<Object>} An array of analysis results for each day.
+         */
+        function analyzeTransits(birthNakshatra, birthRashi, transitForecast) {
+            const birthNakshatraIndex = nakshatras.indexOf(birthNakshatra);
+            const birthRashiIndex = rashis.indexOf(birthRashi);
+            const analysisResults = [];
+
+            // Define which Tara Bala groups are generally considered good or bad
+            // Based on PDF: Janma (1), Sampat (2), Kshema (4), Sadhana (6), Mitra (8), Param Mitra (0/9) are good.
+            const goodTaraBalaGroups = [1, 2, 4, 6, 8, 0]; 
+            // Define Rashi counts that indicate Chandrashtama (unfavorable)
+            const badRashiCounts = [4, 8, 12]; 
+
+            transitForecast.forEach(day => {
+                // 1. Nakshatra Analysis (Tara Bala)
+                const transitNakshatraIndex = nakshatras.indexOf(day.nakshatra);
+                // Calculate the count from birth nakshatra to transit nakshatra
+                let nakshatraCount = transitNakshatraIndex - birthNakshatraIndex + 1;
+                if (nakshatraCount <= 0) nakshatraCount += 27; // Adjust for negative results (e.g., if transit is before birth in the cycle)
+                
+                // Determine the Tara Bala group (1-9 cycle)
+                const taraBalaGroup = nakshatraCount % 9;
+                let taraType = '';
+                
+                // Assign the Tara type name based on the group
+                switch (taraBalaGroup) {
+                    case 1: taraType = 'Janma'; break; 
+                    case 2: taraType = 'Sampat'; break;
+                    case 3: taraType = 'Vipat'; break; 
+                    case 4: taraType = 'Kshema'; break;
+                    case 5: taraType = 'Pratyak'; break; 
+                    case 6: taraType = 'Sadhana'; break;
+                    case 7: taraType = 'Naidhana'; break; 
+                    case 8: taraType = 'Mitra'; break;
+                    case 0: taraType = 'Ati-Mitra'; break; // 0 represents the 9th group in this cycle (Param Mitra)
                 }
-                const selectedDate = new Date(`${dateValue}T12:00:00`);
+                const isNakshatraGood = goodTaraBalaGroups.includes(taraBalaGroup);
 
-                manualLocationErrorEl.classList.add('hidden'); // Hide any previous manual input errors
-                errorMessageEl.classList.add('hidden'); // Hide any previous geolocation errors
-                locationNameErrorEl.classList.add('hidden'); // Hide any previous location name errors
+                // 2. Moon Rashi Analysis (Chandrashtama)
+                const transitRashiIndex = rashis.indexOf(day.rashi);
+                // Calculate the count from birth rashi to transit rashi
+                let rashiCount = transitRashiIndex - birthRashiIndex + 1;
+                if (rashiCount <= 0) rashiCount += 12; // Adjust for negative results
+                
+                // Check if the Rashi count falls into the unfavorable Chandrashtama positions
+                const isRashiGood = !badRashiCounts.includes(rashiCount);
 
-                if (useAutoLocation) {
-                    // In auto mode, we just need to re-run getLocation, which will in turn call calculateTimings
-                    getLocation();
-                } else {
-                    // Manual location: Use location name only
-                    const customNameInputVal = locationNameInput.value.trim();
+                // 3. Final Verdict: A day is considered good if both Nakshatra and Rashi are favorable
+                const isFinalGood = isNakshatraGood && isRashiGood;
 
-                    if (customNameInputVal) {
-                        loaderEl.classList.remove('hidden');
-                        mainContentEl.classList.add('hidden');
-                        locationEl.textContent = `Finding coordinates for "${customNameInputVal}"...`;
-                        const geoResult = await getCoordinatesFromName(customNameInputVal);
-                        if (geoResult) {
-                            userCoords.lat = geoResult.lat;
-                            userCoords.lng = geoResult.lng;
-                            currentLocationName = geoResult.name;
-                            locationEl.textContent = `Location: ${currentLocationName}`;
-                            calculateTimings(userCoords.lat, userCoords.lng, selectedDate);
-                        } else {
-                            locationNameErrorEl.classList.remove('hidden');
-                            locationEl.textContent = `Location: ${defaultLocationFallback}`;
-                            userCoords.lat = 28.6139; // Fallback to Delhi
-                            userCoords.lng = 77.2090; // Fallback to Delhi
-                            loaderEl.classList.add('hidden');
-                            mainContentEl.classList.add('hidden');
-                            return; // Stop if location name not found
-                        }
-                    } else {
-                        // No valid location name provided in manual mode
-                        manualLocationErrorEl.classList.remove('hidden');
-                        loaderEl.classList.add('hidden');
-                        mainContentEl.classList.add('hidden');
+                // Add the daily analysis result to the collection
+                analysisResults.push({
+                    date: day.date,
+                    transitNakshatra: day.nakshatra,
+                    taraType: taraType,
+                    isNakshatraGood: isNakshatraGood,
+                    transitRashi: day.rashi,
+                    isRashiGood: isRashiGood,
+                    isFinalGood: isFinalGood
+                });
+            });
+
+            return analysisResults;
+        }
+
+        /**
+         * Renders the comprehensive analysis results into an HTML table and displays it.
+         * @param {Array<Object>} results - The array of analysis results to display.
+         */
+        function displayResultsAsTable(results) {
+            outputDiv.innerHTML = ''; // Clear any previous results or messages
+
+            // Display a message if no results are found (e.g., invalid date range or data)
+            if (results.length === 0) {
+                outputDiv.innerHTML = '<p class="text-center text-blue-200 p-4">No results for the selected date range and criteria.</p>';
+                return;
+            }
+
+            // Create the table element
+            const table = document.createElement('table');
+            table.className = 'w-full text-left border-collapse';
+
+            // Create the table header (thead) and populate its content
+            const thead = document.createElement('thead'); 
+            thead.innerHTML = `
+                <tr class="border-b border-white/30">
+                    <th class="p-3 text-sm font-semibold tracking-wider">Date</th>
+                    <th class="p-3 text-sm font-semibold tracking-wider">Moon Nakshatra</th>
+                    <th class="p-3 text-sm font-semibold tracking-wider">Nakshatra Result</th>
+                    <th class="p-3 text-sm font-semibold tracking-wider">Moon Rashi</th>
+                    <th class="p-3 text-sm font-semibold tracking-wider">Rashi Result</th>
+                    <th class="p-3 text-sm font-semibold tracking-wider">Final Verdict</th>
+                </tr>
+            `;
+            table.appendChild(thead); // Append the header to the table
+
+            // Create the table body (tbody) and populate it with rows for each day's result
+            const tbody = document.createElement('tbody');
+            results.forEach(day => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-white/20 last:border-b-0'; // Add styling for rows
+
+                // Get the detailed Tara Bala description
+                const taraDesc = taraBalaDescriptions[day.taraType] || '';
+                // Generate HTML for Nakshatra result (Good/Avoid with description)
+                const nakshatraResultHtml = day.isNakshatraGood 
+                    ? `<span class="px-2 py-1 text-xs font-semibold text-green-800 bg-green-200 rounded-full">Good</span><span class="ml-2 text-xs text-gray-300">(${day.taraType}: ${taraDesc})</span>`
+                    : `<span class="px-2 py-1 text-xs font-semibold text-red-800 bg-red-200 rounded-full">Avoid</span><span class="ml-2 text-xs text-gray-300">(${day.taraType}: ${taraDesc})</span>`;
+
+                // Generate HTML for Rashi result (Good/Bad, with specific mention of Chandrashtama)
+                const rashiResultHtml = day.isRashiGood
+                    ? `<span class="px-2 py-1 text-xs font-semibold text-green-800 bg-green-200 rounded-full">Good</span>`
+                    : `<span class="px-2 py-1 text-xs font-semibold text-red-800 bg-red-200 rounded-full">Bad (Chandrashtama)</span>`;
+                
+                // Generate HTML for the final verdict (Good Day/Avoid)
+                const finalResultHtml = day.isFinalGood
+                    ? `<span class="px-3 py-1 font-bold text-base text-green-900 bg-green-300 rounded-full">Good Day</span>`
+                    : `<span class="px-3 py-1 font-bold text-base text-red-900 bg-red-300 rounded-full">Avoid</span>`;
+
+                // Set the inner HTML of the table row with all the calculated data
+                row.innerHTML = `
+                    <td class="p-3 align-middle">${day.date}</td>
+                    <td class="p-3 align-middle">${day.transitNakshatra}</td>
+                    <td class="p-3 align-middle">${nakshatraResultHtml}</td>
+                    <td class="p-3 align-middle">${day.transitRashi}</td>
+                    <td class="p-3 align-middle">${rashiResultHtml}</td>
+                    <td class="p-3 align-middle">${finalResultHtml}</td>
+                `;
+                tbody.appendChild(row); // Append the row to the table body
+            });
+
+            table.appendChild(tbody); // Append the body to the table
+            outputDiv.appendChild(table); // Append the complete table to the output div
+        }
+
+
+        // --- EVENT HANDLERS ---
+
+        /**
+         * Handles the click event of the "Analyze My Days" button.
+         * Performs validation, shows loader, runs analysis, and displays results or errors.
+         */
+        function handleAnalysis() {
+            const startDate = new Date(startDateElement.value);
+            const endDate = new Date(endDateElement.value);
+
+            // Hide any previous error messages
+            errorMessageDiv.classList.add('hidden');
+
+            // --- Input Validation ---
+            if (!startDateElement.value || !endDateElement.value) {
+                errorMessageDiv.textContent = 'Please select both a start and end date.';
+                errorMessageDiv.classList.remove('hidden');
+                return;
+            }
+            if (endDate < startDate) {
+                errorMessageDiv.textContent = 'End date cannot be before the start date.';
+                errorMessageDiv.classList.remove('hidden');
+                return;
+            }
+            const oneDay = 24 * 60 * 60 * 1000;
+            const diffDays = Math.round(Math.abs((endDate - startDate) / oneDay));
+            if (diffDays > 30) {
+                 errorMessageDiv.textContent = 'Please select a date range of 30 days or less for performance.';
+                 errorMessageDiv.classList.remove('hidden');
+                 return;
+            }
+
+            // Show results container, loader, and hide previous output
+            resultsContainer.classList.remove('hidden');
+            loader.classList.remove('hidden');
+            outputDiv.classList.add('hidden'); 
+            // Disable button and change text to indicate processing
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = 'Analyzing...';
+
+            // Simulate an asynchronous operation (like an API call) with a delay
+            setTimeout(() => {
+                try {
+                    const birthNakshatra = selectNakshatraElement.value;
+                    const birthRashi = selectRashiElement.value;
+                    
+                    // Additional validation for dropdown selections
+                    if (!birthNakshatra || !birthRashi) {
+                        errorMessageDiv.textContent = 'Please select your Birth Nakshatra and Birth Moon Rashi.';
+                        errorMessageDiv.classList.remove('hidden');
                         return;
                     }
-                }
-            };
 
-            // --- Handle Location Choice (Auto vs. Manual) ---
-            const handleLocationChoice = () => {
-                useAutoLocation = autoLocationRadio.checked;
-                if (useAutoLocation) {
-                    manualLocationInputsDiv.classList.add('hidden');
-                    // If switching back to auto-location, re-attempt to get location
-                    // This will also trigger calculation via getLocation()
-                    getLocation();
-                } else {
-                    manualLocationInputsDiv.classList.remove('hidden');
-                    // Clear previous location text and errors when switching to manual
-                    locationEl.textContent = "Please enter a location name.";
-                    errorMessageEl.classList.add('hidden');
-                    manualLocationErrorEl.classList.add('hidden');
-                    locationNameErrorEl.classList.add('hidden');
-                    // Hide main content until manual calculation is triggered by button click
-                    mainContentEl.classList.add('hidden');
-                    loaderEl.classList.add('hidden');
-                    // Stop any existing highlight interval when switching from auto to manual
-                    if (highlightInterval) clearInterval(highlightInterval);
-                    document.querySelectorAll('.current-hora-choghadiya').forEach(el => el.classList.remove('current-hora-choghadiya'));
-                }
-            };
-
-            // --- Location Services ---
-            const getLocation = () => {
-                errorMessageEl.classList.add('hidden'); // Hide previous error messages
-                locationNameErrorEl.classList.add('hidden'); // Hide location name error
-                manualLocationErrorEl.classList.add('hidden'); // Hide manual error
-                locationEl.textContent = "Fetching location..."; // Update status
-
-                if (navigator.geolocation && useAutoLocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        async (position) => {
-                            userCoords.lat = position.coords.latitude;
-                            userCoords.lng = position.coords.longitude;
-                            
-                            try {
-                                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${userCoords.lat}&lon=${userCoords.lng}`);
-                                const data = await response.json();
-                                const address = data.address;
-                                currentLocationName = `${address.city || address.town || address.village || ''}, ${address.state || ''}, ${address.country || ''}`.replace(/^,|,$/g, '').trim();
-                                if (!currentLocationName) {
-                                    currentLocationName = `Lat: ${userCoords.lat.toFixed(4)}, Lon: ${userCoords.lng.toFixed(4)}`;
-                                }
-                                locationEl.textContent = `Location: ${currentLocationName}`;
-                            } catch (error) {
-                                console.error("Error fetching location name:", error);
-                                locationEl.textContent = `Location: Lat: ${userCoords.lat.toFixed(4)}, Lon: ${userCoords.lng.toFixed(4)}`;
-                            }
-                            // Call calculateTimings ONLY after location is determined (success)
-                            calculateTimings(userCoords.lat, userCoords.lng, new Date(`${dateInputEl.value}T12:00:00`));
-                        },
-                        (error) => {
-                            // Log the specific error message and code for better debugging
-                            console.error(`Geolocation error: Code ${error.code}, Message: ${error.message}`); 
-                            errorMessageEl.classList.remove('hidden');
-                            locationEl.textContent = `Location: ${defaultLocationFallback}`;
-                            userCoords.lat = 28.6139; // Reset to default fallback coords (Delhi)
-                            userCoords.lng = 77.2090; // Reset to default fallback coords (Delhi)
-                            // Call calculateTimings ONLY after location is determined (error fallback)
-                            calculateTimings(userCoords.lat, userCoords.lng, new Date(`${dateInputEl.value}T12:00:00`));
-                        },
-                        {
-                            enableHighAccuracy: true,
-                            timeout: 10000,
-                            maximumAge: 0
-                        }
-                    );
-                } else if (useAutoLocation) { // If auto-location is selected but not supported (initial load or manual switch)
-                    console.warn("Geolocation is not supported by this browser.");
-                    errorMessageEl.classList.remove('hidden');
-                    locationEl.textContent = `Location: ${defaultLocationFallback}`;
-                    userCoords.lat = 28.6139; // Ensure default fallback coords (Delhi) are used
-                    userCoords.lng = 77.2090; // Ensure default fallback coords (Delhi) are used
-                    // Call calculateTimings directly here for unsupported browsers
-                    calculateTimings(userCoords.lat, userCoords.lng, new Date(`${dateInputEl.value}T12:00:00`));
-                }
-                // If manual location is chosen, getLocation does nothing initially.
-                // The calculation will be triggered by handleCalculation when the button is pressed.
-            };
-
-            // New function to get coordinates from a location name
-            const getCoordinatesFromName = async (locationName) => {
-                try {
-                    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationName)}&limit=1`);
-                    const data = await response.json();
-                    if (data && data.length > 0) {
-                        return {
-                            lat: parseFloat(data[0].lat),
-                            lng: parseFloat(data[0].lon),
-                            name: data[0].display_name // Use the full display name from the API
-                        };
-                    }
-                    return null; // Location not found
-                } catch (error) {
-                    console.error("Error fetching coordinates for location name:", error);
-                    return null;
-                }
-            };
-            
-            // --- Core Hora and Choghadiya Calculation Logic ---
-            const calculateTimings = (lat, lon, selectedDate) => {
-                loaderEl.classList.remove('hidden');
-                mainContentEl.classList.add('hidden');
-                manualLocationErrorEl.classList.add('hidden'); // Hide any manual input error
-                locationNameErrorEl.classList.add('hidden'); // Hide location name error
-
-                if (highlightInterval) clearInterval(highlightInterval);
-                document.querySelectorAll('.current-hora-choghadiya').forEach(el => el.classList.remove('current-hora-choghadiya'));
-
-                displayDateEl.textContent = selectedDate.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-                const dateForSunCalc = new Date(selectedDate);
-                dateForSunCalc.setHours(12, 0, 0, 0);
-
-                const tomorrow = new Date(dateForSunCalc);
-                tomorrow.setDate(tomorrow.getDate() + 1);
-
-                const timesToday = SunCalc.getTimes(dateForSunCalc, lat, lon);
-                const timesTomorrow = SunCalc.getTimes(tomorrow, lat, lon);
-
-                const sunriseToday = timesToday.sunrise;
-                const sunsetToday = timesToday.sunset;
-                const sunriseTomorrow = timesTomorrow.sunrise;
-
-                if (!sunriseToday || !sunsetToday || !sunriseTomorrow) {
-                    console.error("Could not determine sunrise/sunset times for the selected date and location.");
-                    loaderEl.classList.add('hidden');
-                    mainContentEl.classList.add('hidden');
-                    errorMessageEl.textContent = "Error: Could not determine valid sunrise/sunset times for this date/location. Please select a different date or check coordinates.";
-                    errorMessageEl.classList.remove('hidden');
-                    return;
-                }
-
-                sunriseTimeEl.textContent = formatTime(sunriseToday);
-                sunsetTimeEl.textContent = formatTime(sunsetToday);
-
-                // --- Rahu Kaal Calculation ---
-                const dayDurationMillis = sunsetToday.getTime() - sunriseToday.getTime();
-                const yamaDuration = dayDurationMillis / 8;
-                const dayOfWeek = selectedDate.getDay();
-                const rahuKaalYamaIndex = RAHU_KAAL_YAMA_INDEX[dayOfWeek];
-
-                const rahuKaalStart = sunriseToday.getTime() + rahuKaalYamaIndex * yamaDuration;
-                const rahuKaalEnd = rahuKaalStart + yamaDuration;
-                rahuKaalPeriod = { start: rahuKaalStart, end: rahuKaalEnd };
-                rahuKaalTimeEl.textContent = `${formatTime(new Date(rahuKaalStart))} - ${formatTime(new Date(rahuKaalEnd))}`;
-
-
-                // Hindu Calendar Details elements are removed
-                // tithiInfoEl.textContent = `Example: Ashtami upto 11:55 AM`;
-                // nakshatraInfoEl.textContent = `Example: Uttara Bhadrapada upto 11:17 PM`;
-                // pakshaInfoEl.textContent = `Example: Krishna Paksha`;
-                // moonsignInfoEl.textContent = `Example: Meena`;
-
-
-                // --- Hora Calculations ---
-                const nightDurationMillis = sunriseTomorrow.getTime() - sunsetToday.getTime();
-
-                const dayHoraDuration = dayDurationMillis / 12;
-                const nightHoraDuration = nightDurationMillis / 12;
-
-                const dayLord = weekDayLords[dayOfWeek];
-                
-                const dayHoras = generateHoras(dayLord, 12, sunriseToday.getTime(), dayHoraDuration, false);
-                const nightHoras = generateHoras(dayHoras[dayHoras.length - 1].planetInfo.name, 12, sunsetToday.getTime(), nightHoraDuration, true);
-
-                populateHoraTable(dayHoraBodyEl, dayHoras, false);
-                populateHoraTable(nightHoraBodyEl, nightHoras, true);
-
-
-                // --- Choghadiya Calculations ---
-                const dayChoghadiyaDuration = dayDurationMillis / 8;
-                const nightChoghadiyaDuration = nightDurationMillis / 8;
-
-                const dayChoghadiyaSequence = CHOGHADIYA_DAY_ORDER[dayOfWeek];
-                const nightChoghadiyaSequence = CHOGHADIYA_NIGHT_ORDER[dayOfWeek];
-
-                const dayChoghadiyas = generateChoghadiyas(dayChoghadiyaSequence, sunriseToday.getTime(), dayChoghadiyaDuration);
-                const nightChoghadiyas = generateChoghadiyas(nightChoghadiyaSequence, sunsetToday.getTime(), nightChoghadiyaDuration);
-
-                populateChoghadiyaTable(dayChoghadiyaBodyEl, dayChoghadiyas);
-                populateChoghadiyaTable(nightChoghadiyaBodyEl, nightChoghadiyas);
-
-                // --- Best Times Calculation and Display ---
-                const allHoras = [...dayHoras, ...nightHoras];
-                const allChoghadiyas = [...dayChoghadiyas, ...nightChoghadiyas];
-                const bestTimes = calculateBestTimes(allHoras, allChoghadiyas);
-                renderBestTimes(bestTimes);
-
-
-                loaderEl.classList.add('hidden');
-                mainContentEl.classList.remove('hidden');
-                
-                const today = new Date();
-                if (selectedDate.getFullYear() === today.getFullYear() &&
-                    selectedDate.getMonth() === today.getMonth() &&
-                    selectedDate.getDate() === today.getDate()) {
+                    // Perform the astrological transit forecast and analysis
+                    const transitForecast = getMoonTransitForecast(startDate, endDate);
+                    const analysisResults = analyzeTransits(birthNakshatra, birthRashi, transitForecast);
                     
-                    highlightCurrentPeriods(); // Call combined highlight function
-                    highlightInterval = setInterval(highlightCurrentPeriods, 30 * 1000); // Check every 30 seconds
+                    // Display the results in the table
+                    displayResultsAsTable(analysisResults);
+                    outputDiv.classList.remove('hidden'); // Show the output table
+                } catch (error) {
+                    // Catch and display any errors during the analysis process
+                    console.error("An error occurred during analysis:", error);
+                    errorMessageDiv.textContent = "An unexpected error occurred. Please try again.";
+                    errorMessageDiv.classList.remove('hidden');
+                } finally {
+                    // Always hide the loader and re-enable the button, regardless of success or failure
+                    loader.classList.add('hidden');
+                    analyzeBtn.disabled = false;
+                    analyzeBtn.textContent = 'Analyze My Days';
                 }
-            };
+            }, 500); // 500ms delay to simulate loading
+        }
 
-            // --- Generate Hora Data ---
-            const generateHoras = (startLordName, count, initialStartTime, durationPerHora, isNight) => {
-                const horas = [];
-                let currentHoraTime = initialStartTime;
-                let currentLordIndex = planetaryHourOrder.indexOf(startLordName);
-
-                if (isNight) {
-                    // For night horas, the first hora starts with the 5th lord from the *last* day hora lord
-                    // This is consistent with how the `weekDayLords` determine the first day hora lord.
-                    currentLordIndex = (currentLordIndex + 5) % 7; 
-                }
-
-                for (let i = 0; i < count; i++) {
-                    const horaStartTime = currentHoraTime;
-                    const horaEndTime = currentHoraTime + durationPerHora;
-                    const planetInfo = planetDetails[planetaryHourOrder[currentLordIndex]];
-
-                    horas.push({
-                        planetInfo: planetInfo,
-                        horaStartTime: horaStartTime,
-                        horaEndTime: horaEndTime
-                    });
-                    currentHoraTime = horaEndTime;
-                    currentLordIndex = (currentLordIndex + 1) % 7;
-                }
-                return horas;
-            };
-
-            // --- Generate Choghadiya Data ---
-            const generateChoghadiyas = (choghadiyaSequence, initialStartTime, durationPerChoghadiya) => {
-                const choghadiyas = [];
-                let currentChoghadiyaTime = initialStartTime;
-
-                choghadiyas.push(...choghadiyaSequence.map(choghadiyaType => {
-                    const choghadiyaStartTime = currentChoghadiyaTime;
-                    const choghadiyaEndTime = currentChoghadiyaTime + durationPerChoghadiya;
-                    currentChoghadiyaTime = choghadiyaEndTime;
-                    return {
-                        typeInfo: choghadiyaType,
-                        choghadiyaStartTime: choghadiyaStartTime,
-                        choghadiyaEndTime: choghadiyaEndTime
-                    };
-                }));
-                return choghadiyas;
-            };
-
-            // --- Calculate Best Times ---
-            const calculateBestTimes = (allHoras, allChoghadiyas) => {
-                const bestTimes = [];
-                const allTimestamps = new Set();
-
-                // Collect all unique start and end timestamps from both Horas and Choghadiyas
-                allHoras.forEach(h => {
-                    allTimestamps.add(h.horaStartTime);
-                    allTimestamps.add(h.horaEndTime);
-                });
-                allChoghadiyas.forEach(c => {
-                    allTimestamps.add(c.choghadiyaStartTime);
-                    allTimestamps.add(c.choghadiyaEndTime);
-                });
-
-                const sortedTimestamps = Array.from(allTimestamps).sort((a, b) => a - b);
-
-                const MIN_SLOT_DURATION_MS = 20 * 60 * 1000; // 20 minutes in milliseconds
-
-                for (let i = 0; i < sortedTimestamps.length - 1; i++) {
-                    const segmentStart = sortedTimestamps[i];
-                    const segmentEnd = sortedTimestamps[i + 1];
-
-                    // Skip zero-length segments or segments shorter than 20 minutes
-                    if (segmentStart >= segmentEnd || (segmentEnd - segmentStart) < MIN_SLOT_DURATION_MS) continue;
-
-                    // Check for Rahu Kaal overlap - if it overlaps, it's not a "best" time
-                    if (isOverlapping(segmentStart, segmentEnd, rahuKaalPeriod.start, rahuKaalPeriod.end)) {
-                        continue; // Skip this segment if it's within Rahu Kaal
-                    }
-
-
-                    // Find the Hora and Choghadiya active during this segment
-                    const currentHora = allHoras.find(h => segmentStart >= h.horaStartTime && segmentStart < h.horaEndTime);
-                    const currentChoghadiya = allChoghadiyas.find(c => segmentStart >= c.choghadiyaStartTime && segmentStart < c.choghadiyaEndTime);
-
-                    if (currentHora && currentChoghadiya) {
-                        const horaName = currentHora.planetInfo.name;
-                        const choghadiyaName = currentChoghadiya.typeInfo.name;
-
-                        // Check if Hora is one of the desired planets
-                        const isHoraBest = BEST_HORA_PLANETS.includes(horaName);
-                        // Check if Choghadiya is one of the desired types
-                        const isChoghadiyaBest = BEST_CHOGHADIYA_TYPES.includes(choghadiyaName);
-
-                        // A period is 'best' only if BOTH hora and choghadiya meet the "best" criteria
-                        if (isHoraBest && isChoghadiyaBest) {
-                            bestTimes.push({
-                                startTime: segmentStart,
-                                endTime: segmentEnd,
-                                hora: currentHora.planetInfo,
-                                choghadiya: currentChoghadiya.typeInfo
-                            });
-                        }
-                    }
-                }
-                
-                // Merge consecutive best times if they have the same Hora and Choghadiya types
-                const mergedBestTimes = [];
-                if (bestTimes.length > 0) {
-                    let currentMerged = { ...bestTimes[0] };
-                    for (let i = 1; i < bestTimes.length; i++) {
-                        const nextTime = bestTimes[i];
-                        if (currentMerged.endTime === nextTime.startTime &&
-                            currentMerged.hora.name === nextTime.hora.name &&
-                            currentMerged.choghadiya.name === nextTime.choghadiya.name) {
-                            // Merge by extending the end time
-                            currentMerged.endTime = nextTime.endTime;
-                        } else {
-                            // Add current merged and start a new one
-                            mergedBestTimes.push(currentMerged);
-                            currentMerged = { ...nextTime };
-                        }
-                    }
-                    mergedBestTimes.push(currentMerged); // Add the last merged period
-                }
-
-                // Final filter for merged slots: ensure they are still >= 20 minutes
-                return mergedBestTimes.filter(period => (period.endTime - period.startTime) >= MIN_SLOT_DURATION_MS);
-            };
-
-            // Helper function to check for time overlap
-            const isOverlapping = (start1, end1, start2, end2) => {
-                // Ensure valid periods
-                if (start1 === null || end1 === null || start2 === null || end2 === null) {
-                    return false;
-                }
-                return Math.max(start1, start2) < Math.min(end1, end2);
-            };
-
-
-            // --- UI Helper Functions ---
-            const formatTime = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-
-            const populateHoraTable = (tbodyElement, horas, isNightTable) => {
-                tbodyElement.innerHTML = '';
-                horas.forEach((hora, index) => {
-                    const tr = document.createElement('tr');
-                    tr.dataset.startTime = hora.horaStartTime;
-                    tr.dataset.endTime = hora.horaEndTime;
-                    tr.classList.add('hover:bg-gray-50');
-
-                    // Apply rahu-kaal class if it overlaps
-                    if (isOverlapping(hora.horaStartTime, hora.horaEndTime, rahuKaalPeriod.start, rahuKaalPeriod.end)) {
-                        tr.classList.add('rahu-kaal');
-                    }
-
-                    const horaNumber = isNightTable ? index + 13 : index + 1; // For numbering simplicity
-
-                    tr.innerHTML = `
-                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">${horaNumber}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                            <span class="flex items-center">
-                                <span class="planet-icon mr-2">${hora.planetInfo.icon}</span>
-                                ${hora.planetInfo.name}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">${formatTime(new Date(hora.horaStartTime))} - ${formatTime(new Date(hora.horaEndTime))}</td>
-                    `;
-                    tbodyElement.appendChild(tr);
-                });
-            };
-
-            // Function to populate Choghadiya table
-            const populateChoghadiyaTable = (tbodyElement, choghadiyas) => {
-                tbodyElement.innerHTML = '';
-                choghadiyas.forEach(choghadiya => {
-                    const tr = document.createElement('tr');
-                    tr.dataset.startTime = choghadiya.choghadiyaStartTime;
-                    tr.dataset.endTime = choghadiya.choghadiyaEndTime;
-                    tr.classList.add('hover:bg-gray-50');
-
-                    // Apply rahu-kaal class if it overlaps
-                    if (isOverlapping(choghadiya.choghadiyaStartTime, choghadiya.choghadiyaEndTime, rahuKaalPeriod.start, rahuKaalPeriod.end)) {
-                        tr.classList.add('rahu-kaal');
-                    }
-
-                    tr.innerHTML = `
-                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold ${choghadiya.typeInfo.color}">${choghadiya.typeInfo.name}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">${formatTime(new Date(choghadiya.choghadiyaStartTime))} - ${formatTime(new Date(choghadiya.choghadiyaEndTime))}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-500">${choghadiya.typeInfo.info}</td>
-                    `;
-                    tbodyElement.appendChild(tr);
-                });
-            };
-
-            // Function to render the Best Times table
-            const renderBestTimes = (bestTimes) => {
-                bestTimesBodyEl.innerHTML = ''; // Clear previous entries
-                if (bestTimes.length === 0) {
-                    noBestTimesMessageEl.classList.remove('hidden');
-                } else {
-                    noBestTimesMessageEl.classList.add('hidden');
-                    bestTimes.forEach(period => {
-                        const tr = document.createElement('tr');
-                        tr.dataset.startTime = period.startTime;
-                        tr.dataset.endTime = period.endTime;
-                        tr.classList.add('hover:bg-green-100', 'transition-colors'); // Highlight on hover
-
-                        // Determine the auspiciousness string for display (can be simplified if needed)
-                        // This logic is now purely based on the BEST_HORA_PLANETS and BEST_CHOGHADIYA_TYPES constants
-                        const horaAuspiciousnessDisplay = BEST_HORA_PLANETS.includes(period.hora.name) ? 'auspicious' : 'NOT auspicious for best time calculation';
-                        const choghadiyaAuspiciousnessDisplay = BEST_CHOGHADIYA_TYPES.includes(period.choghadiya.name) ? 'auspicious' : 'NOT auspicious for best time calculation';
-
-
-                        tr.innerHTML = `
-                            <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-gray-900">${formatTime(new Date(period.startTime))}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-gray-900">${formatTime(new Date(period.endTime))}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                                <span class="flex items-center">
-                                    <span class="planet-icon mr-2">${period.hora.icon}</span>
-                                    ${period.hora.name} (<span class="font-medium capitalize">${horaAuspiciousnessDisplay}</span>)
-                                </span>
-                            </td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                                <span class="font-semibold ${period.choghadiya.color}">${period.choghadiya.name}</span> (<span class="font-medium capitalize">${choghadiyaAuspiciousnessDisplay}</span>)
-                            </td>
-                        `;
-                        bestTimesBodyEl.appendChild(tr);
-                    });
-                }
-            };
-            
-            // Combined function to highlight current Hora and Choghadiya
-            const highlightCurrentPeriods = () => {
-                const now = new Date().getTime();
-                let highlighted = false;
-
-                // Remove all previous highlights
-                document.querySelectorAll('.current-hora-choghadiya').forEach(el => el.classList.remove('current-hora-choghadiya'));
-                // Also remove rahu-kaal highlight from all rows before re-evaluating
-                document.querySelectorAll('.rahu-kaal').forEach(el => el.classList.remove('rahu-kaal'));
-
-
-                // Apply Rahu Kaal highlighting to all relevant rows first
-                document.querySelectorAll('#day-hora-body tr, #night-hora-body tr, #day-choghadiya-body tr, #night-choghadiya-body tr').forEach(row => {
-                    const start = parseInt(row.dataset.startTime);
-                    const end = parseInt(row.dataset.endTime);
-                    if (isOverlapping(start, end, rahuKaalPeriod.start, rahuKaalPeriod.end)) {
-                        row.classList.add('rahu-kaal');
-                    }
-                });
-
-                // Check Best Times table first for current period highlighting
-                document.querySelectorAll('#best-times-body tr').forEach(row => {
-                    const start = parseInt(row.dataset.startTime);
-                    const end = parseInt(row.dataset.endTime);
-                    if (now >= start && now < end) {
-                        row.classList.add('current-hora-choghadiya');
-                        if (!highlighted) { 
-                            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            highlighted = true;
-                        }
-                    }
-                });
-
-                // Check Hora tables (only if not already highlighted in best times)
-                if (!highlighted) {
-                    document.querySelectorAll('#day-hora-body tr, #night-hora-body tr').forEach(row => {
-                        const start = parseInt(row.dataset.startTime);
-                        const end = parseInt(row.dataset.endTime);
-                        if (now >= start && now < end) {
-                            row.classList.add('current-hora-choghadiya');
-                            if (!highlighted) {
-                                row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                highlighted = true;
-                            }
-                        }
-                    });
-                }
-
-                // Check Choghadiya tables (only if not already highlighted)
-                if (!highlighted) {
-                    document.querySelectorAll('#day-choghadiya-body tr, #night-choghadiya-body tr').forEach(row => {
-                        const start = parseInt(row.dataset.startTime);
-                        const end = parseInt(row.dataset.endTime);
-                        if (now >= start && now < end) {
-                            row.classList.add('current-hora-choghadiya');
-                            if (!highlighted) {
-                                row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                highlighted = true;
-                            }
-                        }
-                    });
-                }
-            };
-
-            // --- Run Initialization ---
-            init();
+        // --- SCRIPT EXECUTION ON PAGE LOAD ---
+        // Ensures the DOM is fully loaded before trying to access elements
+        document.addEventListener('DOMContentLoaded', () => {
+            populateDropdowns(); // Fill the dropdowns with Nakshatra and Rashi options
+            setInitialDates(); // Set default dates in the input fields
+            analyzeBtn.addEventListener('click', handleAnalysis); // Attach the event listener to the analyze button
         });
     </script>
 </body>
